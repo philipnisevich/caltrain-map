@@ -4,3 +4,4 @@ venv/
 .DS_Store
 test.pb
 Caltrain_Firmware/wifi_secrets.h
+Caltrain_Firmware/server_config.h

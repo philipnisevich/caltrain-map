@@ -4,9 +4,9 @@
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 #include "wifi_secrets.h"
+#include "server_config.h"
 
 // ===================== CONFIG =====================
-const char* serverUrl = "http://10.0.0.88:8000/caltrain"; // <-- Use your Mac IP
 
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define CS_PIN 5
