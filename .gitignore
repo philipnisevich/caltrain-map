@@ -1,0 +1,6 @@
+.env
+venv/
+.venv/
+.DS_Store
+test.pb
+Caltrain_Firmware/wifi_secrets.h
