@@ -11,10 +11,8 @@ A live Caltrain tracker that:
 - `main.py` - FastAPI app (`/caltrain`) that fetches and transforms live train data.
 - `stations.py` - station coordinate/code mapping used by the backend.
 - `Caltrain_Firmware/Caltrain_Firmware.ino` - ESP32 firmware that fetches backend JSON and updates LEDs.
-- `Caltrain_Firmware/wifi_secrets.h` - local Wi-Fi credentials (git-ignored).
-- `Caltrain_Firmware/wifi_secrets.example.h` - template for Wi-Fi credentials.
-- `Caltrain_Firmware/server_config.h` - local backend URL config (git-ignored).
-- `Caltrain_Firmware/server_config.example.h` - template for backend URL config.
+- `Caltrain_Firmware/server_config.h` - local firmware config (Wi-Fi + server URL, git-ignored).
+- `Caltrain_Firmware/server_config.example.h` - template for firmware config.
 - `.env` - local backend API secrets (git-ignored).
 - `.env.example` - template env file for backend.
 
@@ -23,8 +21,7 @@ A live Caltrain tracker that:
 Sensitive values are intentionally split into local files that are ignored by Git:
 
 - Backend API key: `.env`
-- ESP32 Wi-Fi: `Caltrain_Firmware/wifi_secrets.h`
-- ESP32 server URL / local IP: `Caltrain_Firmware/server_config.h`
+- ESP32 Wi-Fi + server URL: `Caltrain_Firmware/server_config.h`
 
 Do **not** commit those files. Commit only the `*.example` template files.
 
@@ -51,7 +48,7 @@ Do **not** commit those files. Commit only the `*.example` template files.
 
 ## One-Time Setup
 
-### 1) Backend secrets
+### 1) Configure backend `.env`
 Create `.env` in repo root:
 
 ```bash
@@ -64,24 +61,18 @@ Then edit `.env`:
 API_KEY=your_511_api_key_here
 ```
 
-### 2) Firmware local config
-Create local secret/config headers:
+### 2) Configure firmware `server_config.h`
+Create firmware config from template:
 
 ```bash
-cp Caltrain_Firmware/wifi_secrets.example.h Caltrain_Firmware/wifi_secrets.h
 cp Caltrain_Firmware/server_config.example.h Caltrain_Firmware/server_config.h
 ```
 
-Edit `Caltrain_Firmware/wifi_secrets.h`:
+Edit `Caltrain_Firmware/server_config.h`:
 
 ```cpp
 const char* ssid = "YOUR_WIFI_SSID";
 const char* password = "YOUR_WIFI_PASSWORD";
-```
-
-Edit `Caltrain_Firmware/server_config.h` with your Mac's LAN IP:
-
-```cpp
 const char* serverUrl = "http://YOUR_MAC_IP:8000/caltrain";
 ```
 
@@ -105,7 +96,7 @@ Use:
 ipconfig getifaddr en0
 ```
 
-Put that IP into `server_config.h`.
+Put that IP into `Caltrain_Firmware/server_config.h` as `serverUrl`.
 
 ## Verify Backend Before Flashing
 
@@ -120,15 +111,17 @@ Both should return JSON with a `timestamp` and `trains` array.
 
 ## Uploading Firmware
 
-1. Open `Caltrain_Firmware/Caltrain_Firmware.ino` in Arduino IDE.
-2. Select your ESP32 board and correct serial port.
-3. Install required libraries if missing.
-4. Build and upload.
-5. Open Serial Monitor (`115200`) to watch Wi-Fi and HTTP logs.
+1. Ensure `.env` has a valid backend `API_KEY`.
+2. Ensure `Caltrain_Firmware/server_config.h` has current `ssid`, `password`, and `serverUrl`.
+3. Open `Caltrain_Firmware/Caltrain_Firmware.ino` in Arduino IDE.
+4. Select your ESP32 board and correct serial port.
+5. Install required libraries if missing.
+6. Build and upload.
+7. Open Serial Monitor (`115200`) to watch Wi-Fi and HTTP logs.
 
 ## Runtime Behavior
 
-- ESP32 connects to Wi-Fi using `wifi_secrets.h`.
+- ESP32 connects to Wi-Fi using values from `server_config.h`.
 - Every ~30 seconds it calls `serverUrl`.
 - Backend returns train station codes + direction (`NORTH` / `SOUTH`).
 - Firmware maps station code -> LED position and updates matrix.
@@ -172,7 +165,6 @@ Ignored local-only files:
 - `venv/`, `.venv/`
 - `.DS_Store`
 - `test.pb`
-- `Caltrain_Firmware/wifi_secrets.h`
 - `Caltrain_Firmware/server_config.h`
 
 Recommended workflow:

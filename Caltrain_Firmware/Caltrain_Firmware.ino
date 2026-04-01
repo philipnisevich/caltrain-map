@@ -3,7 +3,6 @@
 #include <ArduinoJson.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
-#include "wifi_secrets.h"
 #include "server_config.h"
 
 // ===================== CONFIG =====================
