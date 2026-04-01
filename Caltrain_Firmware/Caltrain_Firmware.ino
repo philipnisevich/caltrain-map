@@ -10,6 +10,7 @@
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 #define CS_PIN 5
 #define MAX_DEVICES 1
+#define ROTATE_DISPLAY_90_CCW 1  // set to 1 to rotate output 90 degrees CCW
 
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
@@ -126,7 +127,12 @@ int findStationIndexFromCode(const char* code) {
 void setStationLED(int idx, Direction dir) {
   uint8_t row = stations[idx].row;
   uint8_t col = stations[idx].col + (dir == SOUTH ? 1 : 0);
+#if ROTATE_DISPLAY_90_CCW
+  // 8x8 CCW rotation: (x, y) -> (y, 7 - x)
+  mx.setPoint(row, 7 - col, true);
+#else
   mx.setPoint(col, row, true);
+#endif
 }
 
 // ===================== FETCH & UPDATE =====================
