@@ -1,138 +1,134 @@
 # Caltrain LED Map
 
 A live Caltrain tracker that:
-- runs a FastAPI backend on your Mac,
-- pulls Caltrain vehicle positions from 511 GTFS-Realtime,
-- maps trains to station codes,
-- and lights LEDs on an ESP32 + MAX72xx matrix.
 
-## Project Structure
+- runs a **FastAPI** backend (`GET /caltrain`) that pulls Caltrain vehicle positions from **511 GTFS-Realtime**,
+- maps trains to station codes using `stations.py`,
+- and lights LEDs on an **ESP32** + **MAX72xx** matrix.
 
-- `main.py` - FastAPI app (`/caltrain`) that fetches and transforms live train data.
-- `stations.py` - station coordinate/code mapping used by the backend.
-- `firmware/caltrain_firmware/caltrain_firmware.ino` - ESP32 firmware that fetches backend JSON and updates LEDs.
-- `firmware/caltrain_firmware/server_config.h` - local firmware config (Wi-Fi + server URL, git-ignored; create from the example below).
-- `firmware/server_config.example.h` - template you copy into the sketch folder as `server_config.h`.
-- `.env` - local backend API secrets (git-ignored).
-- `.env.example` - template env file for backend.
+You can run the backend on your **Mac** for development or on a **VPS** 24/7 for production. See **[HOSTING.md](HOSTING.md)** for the full DigitalOcean + systemd + Caddy setup.
 
-## Security / Secrets
+## Project structure
 
-Sensitive values are intentionally split into local files that are ignored by Git:
+- `main.py` — FastAPI app (`/caltrain`) that fetches and transforms live train data.
+- `stations.py` — Station coordinates / codes for the backend.
+- `requirements.txt` — Python dependencies (use for local venv and production deploys).
+- `caltrain_firmware/caltrain_firmware.ino` — ESP32 firmware (JSON → LEDs).
+- `caltrain_firmware/server_config.h` — Local Wi-Fi + server URL (git-ignored; create from the example).
+- `caltrain_firmware/server_config.example.h` — Template copied to `server_config.h`.
+- `.env` — Local backend secrets (git-ignored).
+- `.env.example` — Template for `API_KEY`.
 
-- Backend API key: `.env`
-- ESP32 Wi-Fi + server URL: `firmware/caltrain_firmware/server_config.h`
+## Security / secrets
 
-Do **not** commit those files. Commit only the `*.example` template files.
+Keep credentials out of Git:
+
+- Backend: `.env` (local) or `/etc/caltrain-api.env` (server).
+- Firmware: `caltrain_firmware/server_config.h`.
+
+Commit only `*.example` templates.
 
 ## Prerequisites
 
-### Backend (Mac)
+### Backend
+
 - Python 3.9+
-- A 511.org API key
-- Python packages used by `main.py`:
-  - `fastapi`
-  - `uvicorn`
-  - `requests`
-  - `gtfs-realtime-bindings`
-  - `geopy`
+- A [511.org](https://511.org/open-data/transit) API key
+- Packages: install with `pip install -r requirements.txt` (includes `gtfs-realtime-bindings`, `fastapi`, `uvicorn`, etc.)
 
-### Hardware / Firmware
-- ESP32 board
-- MAX72xx LED matrix module
-- Arduino IDE with:
-  - ESP32 board package
-  - Libraries:
-    - `ArduinoJson`
-    - `MD_MAX72xx`
+### Hardware / firmware
 
-## One-Time Setup
+- ESP32, MAX72xx module
+- Arduino IDE: ESP32 board support, **ArduinoJson**, **MD_MAX72xx**
 
-### 1) Configure backend `.env`
-Create `.env` in repo root:
+## One-time setup (local / Mac)
+
+### 1) Backend `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit `.env`:
+Edit `.env`:
 
 ```env
 API_KEY=your_511_api_key_here
 ```
 
-### 2) Configure firmware `server_config.h`
-Create firmware config from template:
+### 2) Firmware `server_config.h`
 
 ```bash
-cp firmware/server_config.example.h firmware/caltrain_firmware/server_config.h
+cp caltrain_firmware/server_config.example.h caltrain_firmware/server_config.h
 ```
 
-Edit `firmware/caltrain_firmware/server_config.h`:
+Edit `caltrain_firmware/server_config.h`:
 
-```cpp
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
-const char* serverUrl = "http://YOUR_MAC_IP:8000/caltrain";
-```
+- **Local dev** (ESP and Mac on same Wi-Fi):
 
-## Running the Backend
+  ```cpp
+  const char* serverUrl = "http://YOUR_MAC_LAN_IP:8000/caltrain";
+  ```
 
-From project root:
+- **Production** (API on a VPS with a domain):
+
+  ```cpp
+  const char* serverUrl = "http://api.yourdomain.com/caltrain";
+  ```
+
+Set `ssid` and `password` to your Wi-Fi. The sketch uses **HTTP** (`WiFiClient`), not HTTPS.
+
+## Run the backend locally
+
+From the repo root:
 
 ```bash
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Why `0.0.0.0`?  
-It allows your ESP32 (on the same network) to reach your Mac.
+Use `0.0.0.0` so devices on your LAN (e.g. the ESP32) can reach your Mac.
 
-## Find Your Mac LAN IP
+## Host the API in production
 
-Use:
+See **[HOSTING.md](HOSTING.md)** for:
+
+- Ubuntu Droplet, UFW, `git clone` under `/opt/caltrain-api`
+- **`systemd`** + **`/etc/caltrain-api.env`** for `API_KEY`
+- **Caddy** on port 80 → `http://api.yourdomain.com` → uvicorn on `127.0.0.1:8000`
+- DNS **A** record for `api`
+
+## Find your Mac LAN IP
 
 ```bash
 ipconfig getifaddr en0
 ```
 
-Put that IP into `firmware/caltrain_firmware/server_config.h` as `serverUrl`.
+Use that in `serverUrl` for local development.
 
-## Verify Backend Before Flashing
-
-With server running:
+## Verify the backend
 
 ```bash
 curl http://127.0.0.1:8000/caltrain
-curl http://YOUR_MAC_IP:8000/caltrain
 ```
 
-Both should return JSON with a `timestamp` and `trains` array.
+Expect JSON with `timestamp` and `trains`.
 
-## Uploading Firmware
+## Upload firmware
 
-1. Ensure `.env` has a valid backend `API_KEY`.
-2. Ensure `firmware/caltrain_firmware/server_config.h` has current `ssid`, `password`, and `serverUrl`.
-3. Open `firmware/caltrain_firmware/caltrain_firmware.ino` in Arduino IDE.
-4. Select your ESP32 board and correct serial port.
-5. Install required libraries if missing.
-6. Build and upload.
-7. Open Serial Monitor (`115200`) to watch Wi-Fi and HTTP logs.
+1. Valid `API_KEY` in `.env` (local) or on the server (production).
+2. `caltrain_firmware/server_config.h` has correct `ssid`, `password`, and `serverUrl`.
+3. Open `caltrain_firmware/caltrain_firmware.ino` in Arduino IDE, select board/port, build and upload.
+4. Serial Monitor at **115200** for Wi-Fi and HTTP logs.
 
-## Runtime Behavior
+## Runtime behavior
 
-- ESP32 connects to Wi-Fi using values from `server_config.h`.
-- Every ~30 seconds it calls `serverUrl`.
-- Backend returns train station codes + direction (`NORTH` / `SOUTH`).
-- Firmware maps station code -> LED position and updates matrix.
+- ESP32 connects to Wi-Fi, then polls `serverUrl` about every 30 seconds.
+- Backend returns station codes and `NORTH` / `SOUTH`.
+- Firmware maps codes to LED positions on the matrix.
 
-## API Contract Used by Firmware
-
-Endpoint:
-
-- `GET /caltrain`
-
-Response shape:
+## API contract (`GET /caltrain`)
 
 ```json
 {
@@ -143,32 +139,25 @@ Response shape:
 }
 ```
 
-## Common Issues
+## Common issues
 
-- **ESP32 cannot connect to backend**
-  - Mac and ESP32 must be on same Wi-Fi.
-  - Backend must run with `--host 0.0.0.0`.
-  - Check Mac firewall allows incoming Python/Terminal.
-  - Verify `serverUrl` IP is current (it may change with DHCP).
+- **ESP cannot reach the backend (local)**  
+  Same Wi-Fi, Mac firewall, `uvicorn --host 0.0.0.0`, correct LAN IP in `serverUrl`.
 
-- **Missing `API_KEY` error in backend**
-  - Ensure `.env` exists and contains `API_KEY=...`.
+- **ESP cannot reach the backend (production)**  
+  DNS for `api`, Caddy running, `caltrain-api` active, URL is `http://` (not `https://`) with current firmware.
 
-- **No trains displayed**
-  - 511 API can return no data at times.
-  - Check backend logs and Serial Monitor output.
+- **`Missing API_KEY`**  
+  `.env` locally or `/etc/caltrain-api.env` on the server; `EnvironmentFile=` in systemd.
 
-## Git Hygiene
+- **`No module named 'google.transit'`**  
+  `pip install gtfs-realtime-bindings` in the same venv that runs uvicorn.
 
-Ignored local-only files:
-- `.env`
-- `venv/`, `.venv/`
-- `.DS_Store`
-- `test.pb`
-- `**/server_config.h`
-- `tests/`
+- **No trains**  
+  511 sometimes returns empty data; check backend logs and Serial Monitor.
 
-Recommended workflow:
-- commit source and `*.example` files,
-- keep real credentials only in local ignored files.
+## Git hygiene
 
+Ignored paths (see `.gitignore`): `.env`, `venv/`, `.venv/`, `**/server_config.h`, etc.
+
+Commit source and `*.example` files only.
