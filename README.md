@@ -10,9 +10,9 @@ A live Caltrain tracker that:
 
 - `main.py` - FastAPI app (`/caltrain`) that fetches and transforms live train data.
 - `stations.py` - station coordinate/code mapping used by the backend.
-- `Caltrain_Firmware/Caltrain_Firmware.ino` - ESP32 firmware that fetches backend JSON and updates LEDs.
-- `Caltrain_Firmware/server_config.h` - local firmware config (Wi-Fi + server URL, git-ignored).
-- `Caltrain_Firmware/server_config.example.h` - template for firmware config.
+- `firmware/caltrain_firmware/caltrain_firmware.ino` - ESP32 firmware that fetches backend JSON and updates LEDs.
+- `firmware/caltrain_firmware/server_config.h` - local firmware config (Wi-Fi + server URL, git-ignored; create from the example below).
+- `firmware/server_config.example.h` - template you copy into the sketch folder as `server_config.h`.
 - `.env` - local backend API secrets (git-ignored).
 - `.env.example` - template env file for backend.
 
@@ -21,7 +21,7 @@ A live Caltrain tracker that:
 Sensitive values are intentionally split into local files that are ignored by Git:
 
 - Backend API key: `.env`
-- ESP32 Wi-Fi + server URL: `Caltrain_Firmware/server_config.h`
+- ESP32 Wi-Fi + server URL: `firmware/caltrain_firmware/server_config.h`
 
 Do **not** commit those files. Commit only the `*.example` template files.
 
@@ -65,10 +65,10 @@ API_KEY=your_511_api_key_here
 Create firmware config from template:
 
 ```bash
-cp Caltrain_Firmware/server_config.example.h Caltrain_Firmware/server_config.h
+cp firmware/server_config.example.h firmware/caltrain_firmware/server_config.h
 ```
 
-Edit `Caltrain_Firmware/server_config.h`:
+Edit `firmware/caltrain_firmware/server_config.h`:
 
 ```cpp
 const char* ssid = "YOUR_WIFI_SSID";
@@ -96,7 +96,7 @@ Use:
 ipconfig getifaddr en0
 ```
 
-Put that IP into `Caltrain_Firmware/server_config.h` as `serverUrl`.
+Put that IP into `firmware/caltrain_firmware/server_config.h` as `serverUrl`.
 
 ## Verify Backend Before Flashing
 
@@ -112,8 +112,8 @@ Both should return JSON with a `timestamp` and `trains` array.
 ## Uploading Firmware
 
 1. Ensure `.env` has a valid backend `API_KEY`.
-2. Ensure `Caltrain_Firmware/server_config.h` has current `ssid`, `password`, and `serverUrl`.
-3. Open `Caltrain_Firmware/Caltrain_Firmware.ino` in Arduino IDE.
+2. Ensure `firmware/caltrain_firmware/server_config.h` has current `ssid`, `password`, and `serverUrl`.
+3. Open `firmware/caltrain_firmware/caltrain_firmware.ino` in Arduino IDE.
 4. Select your ESP32 board and correct serial port.
 5. Install required libraries if missing.
 6. Build and upload.
@@ -165,7 +165,8 @@ Ignored local-only files:
 - `venv/`, `.venv/`
 - `.DS_Store`
 - `test.pb`
-- `Caltrain_Firmware/server_config.h`
+- `**/server_config.h`
+- `tests/`
 
 Recommended workflow:
 - commit source and `*.example` files,

@@ -3,4 +3,5 @@ venv/
 .venv/
 .DS_Store
 test.pb
-Caltrain_Firmware/server_config.h
+**/server_config.h
+tests/
