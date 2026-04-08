@@ -7,6 +7,7 @@ A live Caltrain tracker that:
 - and lights LEDs on an **ESP32** + **MAX72xx** matrix.
 
 You can run the backend on your **Mac** for development or on a **VPS** 24/7 for production. See **[HOSTING.md](HOSTING.md)** for the full DigitalOcean + systemd + Caddy setup.
+For a high-level comparison of local vs cloud vs Raspberry Pi, see **[RUN_MODES.md](RUN_MODES.md)**.
 
 ## Project structure
 
